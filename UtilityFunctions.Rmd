@@ -1,0 +1,396 @@
+---
+title: "Preferences and Utility Functions"
+author: |
+  | Enrique M. Saldarriaga
+  
+  | The CHOICE Institute, University of Washington
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    #code_folding: hide #folds de code but allows the user to unfold in the rendered doc
+runtime: shiny
+---
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(flexdashboard); library(shiny); library(scatterplot3d); library(car); library(dplyr); library(plotly)
+#Sources: 
+## Utility Functions: http://www.econ.ucla.edu/sboard/teaching/econ11_09/econ11_09_lecture2.pdf
+## Rmarkdown: https://bookdown.org/yihui/rmarkdown/html-document.html
+# Control tooltips on plotly: https://plotly-r.com/controlling-tooltips.html#tooltip-text; https://plotly.com/r/
+```
+# Utility Functions
+
+These are mathematical representations of the relationship of two or more goods or services consumed by an individual within a market and the utility that they extract from said consumption. According to the Consumer Theory, people seek the maximization of their utility by consuming goods and services subject to a budget restriction. Thus, Utility functions represent the \textit{preferences} of individuals for goods and services. There are multiple uses for utility functions, such as demand derivation and substitution modeling (trade amongst good and services).
+
+Here, I aim to introduce the two most common utility functions: Cobb-Douglas, Constant Elasticity of Substitution (CES), and provide a visual representation of simulated functions under different parameters. In each function, users would be able to change some of the parameters to see how the plot changes under different parameters' values and what does that imply.
+
+In all cases, I assume that individuals only consume two goods X1 and X2; x1 and x2 denote the quantities consumed on each good. In addition, both goods provide a positive utility; the consumption of goods and services can also create negative utilities, called a desutility. 
+The notation $U(x1,x2)$ refers to the utility functions whose parameters are the amounts consumed of goods X1 and X2.
+
+## Cobb Douglas
+
+This is probably the most frequently used utility function. It uses three parameters: the amount consumed on both goods (remember we are assuming only two goods, X1 and X2, are consumed) and $\alpha$ a parameter that represents the change in the utility associated with changes in the goods. Formally, $\alpha$ is the utility elasticity ($\sigma{U}/\sigma{x1}$) of good X1 and expresses the percentual increase in the utility associated with a 1% increase in any given good. 
+
+The Codd Douglas function is defined as: $U(x1,x2) = A*x1^\alpha*x2^\beta$ 
+where $\alpha>0$ and $\beta>0$ are the elasticities of X1 and X2, respectively. Here, we assume $A=1$ and $\alpha + \beta = 1$ which implies that the utility would always increase in the same proportion as the increase in quantities consumed of X1 and X2. Hence, the function can be re-written as: $U(x1,x2) = x1^\alpha*x2^{1-\alpha}$.
+
+Slide the value for $\alpha$ from closer to zero to closer to one, to see the impact on the shape of the curves.
+```{r, echo=FALSE, include=TRUE}
+# sliderInput("n",
+#             "Number of Observations:",
+#                   min = 1,
+#                   max = 1E2,
+#                   value=1E1)
+
+sliderInput("alpha",
+            "Alpha",
+                  min = 0.1,
+                  max = 1,
+                  value=0.5)
+
+plotly::renderPlotly({
+    
+  n = 1E2
+  alpha = input$alpha
+    
+  dt <- matrix(0, # creating matrix to loop utility function over
+                       nrow = n,
+                       ncol = n)
+
+
+for(x in 1:nrow(dt)){   # populating matrix with utility function
+  for(y in 1:ncol(dt)){
+    dt[x,y] <- x^alpha*y^(1-alpha)
+    
+  }
+}
+
+font <- list(
+  #family = "Helvetica, sans-serif",
+  size = 20,
+  color = "grey25")
+
+x_axis <- list(
+  title = "X1",
+  titlefont  = font)
+
+y_axis <- list(
+  title = "X2",
+  titlefont  = font)
+
+z_axis <- list(
+  title = "Utility",
+  titlefont = font)
+
+#p <- 
+  plot_ly(
+          hoverinfo = "text") %>% 
+  add_surface(z = ~dt, showscale = FALSE,
+              contours = list(
+                z = list(
+                  #show=TRUE,
+                  usecolormap=TRUE,
+                  #highlightcolor="#ff0000",
+                  project=list(z=TRUE)
+                ),
+                size = 90
+              ),
+              colorscale = list(c(0, 1), c("cyan", "green"))) %>%
+  layout(
+    showlegend = FALSE,
+    scene = list(
+      camera=list(
+        eye = list(x=1.87, y=0.88, z=1)
+      ),
+      xaxis = x_axis,
+      yaxis = y_axis,
+      zaxis = z_axis
+    )
+  ) %>% 
+  config(displayModeBar = FALSE, displaylogo = FALSE,
+         scrollZoom= FALSE)
+
+
+  #div(p, align = "center")
+
+})
+
+```
+
+## Constant Elasticity of Substitution (CES)
+
+CES defines the utility function as: $U(x1,x2) = (x1^r + x2^r)^{1/r}$, where $r \neq 0, r<1$.
+
+The CES is capable to represent different $\textit{types}$ of preferences. When $r$ approaches zero, the limit of the CES function becomes $U(x1,x2) = ln(x1) + ln(x2) = ln(x1*x2)$, which resembles the Cobb-Douglas function.On the other hand, when $r$ approaches 1, the function represents perfect substitutes: $r \rightarrow 1 :: U(x1, x2) = x1 + x2$. Finally, when $r$ approaches negative infinity, the preferences resemble perfect complements, and the function is defined as $r \rightarrow -\infty :: U(x1, x2) = min{\{x1,  x2\}}$. I expand on the implications of different preferneces in the next section.
+
+Change the value of $r$ to see the impact on the shape of the curves in the plot below.
+```{r, echo=FALSE, include=TRUE}
+# sliderInput("n",
+#             "Number of Observations:",
+#                   min = 1,
+#                   max = 1E2,
+#                   value=1E1)
+
+sliderInput("r",
+            "r:",
+                  min = -10,
+                  max = 1,
+                  value= 1) #it's an integer, doens't allow decimals
+
+plotly::renderPlotly({
+    
+n = 1E2
+r = input$r
+    
+dt <- matrix(0,nrow = n,ncol = n)
+for(x in 1:nrow(dt)){
+  for(y in 1:ncol(dt)){
+    dt[x,y] <- ((x^r) + (y^r))^(1/r)
+  }
+}
+
+font <- list(
+  #family = "Helvetica, sans-serif",
+  size = 20,
+  color = "grey25")
+
+x_axis <- list(
+  title = "X1",
+  titlefont  = font)
+
+y_axis <- list(
+  title = "X2",
+  titlefont  = font)
+
+z_axis <- list(
+  title = "Utility",
+  titlefont = font)
+
+#p1 <- 
+  plot_ly(
+          hoverinfo = "text") %>% 
+  add_surface(z = ~dt, showscale = FALSE,
+              contours = list(
+                z = list(
+                  #show=TRUE,
+                  usecolormap=TRUE,
+                  #highlightcolor="#ff0000",
+                  project=list(z=TRUE)
+                ),
+                size = 90
+              ),
+              colorscale = list(c(0, 1), c("cyan", "green"))) %>%
+  layout(
+    showlegend = FALSE,
+    scene = list(
+      camera=list(
+        eye = list(x=1.87, y=0.88, z=1)
+      ),
+      xaxis = x_axis,
+      yaxis = y_axis,
+      zaxis = z_axis
+    )
+  ) %>% 
+  config(displayModeBar = FALSE, displaylogo = FALSE,
+         scrollZoom= FALSE)
+
+
+#div(p1, align = "center")
+
+})
+
+```
+
+## Indifference Curves
+At the beginning of the entry, I mentioned that one use of the utility functions is to derive demand under the assumption that individuals make consumption decisions to maximize their utility. The methods for utility maximization are beyond the scope of this entry, but I want to introduce an essential concept to understand the theory: Indifference Curves.
+
+Consider the follow utility function that follows the Cobb-Douglas structure: $U(x1,x2) = x1^{0.5} * x2^{0.5}$. The individual whose preference are defined by this function would obtain the same utility by consuming 3 units of x1 and 2.4 units of x2, or 9 units of x1 and 1.8 units of x2. The reason is that given the same elasticity parameters (i.e., $\alpha$) several combinations of x1 and x2 can generate the same utility. 
+
+An indifference curve (IC) shows $\textit{all}$ the possible combinations of x1 and x2 that generate the same level of utility. Thus, each IC denotes a unique level of utility and because of this, everything else being equal (i.e., same utility function and parameters), IC cannot cross. If two curves were to cross, that would mean that the same combination of goods consumed can generate two different (one for each IC) levels of utility. 
+
+When multiple IC are plotted together, we call it a map of IC. In combination with a budget function, a map of IC is essential to identify the quantity of goods that maximizes an individual’s utility; this is called the optimum consumption.
+
+In the plot below you can find a map of IC created from the utility function $U(x1,x2) = x1^{0.5} * x2^{0.5}$ for utilities between 1 and 101 with jumps of 5 units (i.e., $U = {1, 6, 11, …, 101}$. The closer the curve to the origin, the lower the utility. You can choose a value for the amount consumed of X1 and X2 to see where it lies in the IC map. See what happens when the consumption of only 1 good increases, and when both do.
+
+```{r, echo=FALSE, include=TRUE}
+
+numericInput("x1", "Quantity consumend on good X1 (0<X1<=100):", 10)
+
+numericInput("x2", "Quantity consumend on good X2 (0<X2<=10):", 2)
+
+renderPlot({
+    
+      n = 100
+      alpha = 0.5
+      x1 = min(c(100,input$x1))
+      x2 = min(c(10,input$x2))
+      
+      # utility_i = x1^alpha*x2^(1-alpha)
+      
+      utility_dti <- function(utility){
+        y <- c()
+        for(i in 1:n){
+          y_val <- (utility/(i^(alpha)))^(1-alpha)
+          y <- c(y, y_val)
+        }
+        
+        dt <- data.frame(
+          x = 1:n,
+          y = y,
+          z = rep(utility, n)
+        )
+        return(dt)
+      }
+      
+      utility_df <- lapply(seq(1, 101, 5), utility_dti)
+      
+      full_df <- do.call(rbind, utility_df)
+  
+    #p2 = 
+      ggplot() +
+        geom_point(data = full_df, aes(x = x, y = y, color = as.factor(z)), size=0.8, 
+                   alpha = 0.5, show.legend = F) +
+        geom_path(data = full_df, aes(x = x, y = y, color = as.factor(z)), 
+                  alpha = 0.5, show.legend = F) +
+        geom_point(aes(x=x1,y=x2))+
+        #scale_colour_manual(values = paste0("grey",1:21))+
+        theme_minimal() +
+        labs(x = "X1", y = "X2")#,color = "Utility")
+
+
+    #div(p2, align = "center")
+
+})
+
+```
+
+In the section of the CES utility function I mentioned that this function is capable of expressing different types of preferences among goods. In fact, depending on the value of $r$ it can denote that the goods X1 and X2 have a level of tradability (i.e., the individual is willing to trade consumption of one good for another while keeping the same level of utility), are perfect substitutes, or perfect complements. 
+
+When goods are perfect substitutes, consuming both of them makes little sense and instead individuals would choose to consume only one to satisfy their needs; the good with the lowest price. In this case, the map of indifference curves would look different. The shape of the IC in the previous plot reflects the fact that consuming a combination of goods provides utility, and increasing the consumption of only one can lead to additional utility, which shows that these goods are interchangeable. Following the same idea, when two goods are perfect substitutes, the IC would look like straight lines (instead of curves) to reflect the notion that only one good would be consumed.  Under preference for two perfect substitutes, the utility function is  expressed as $U(x1, x2) = x1 + x2$. The plot below was created with the CES function, with $r = 0.9$.
+
+```{r, echo=FALSE, include=TRUE}
+    n = 1e3
+    r = 0.9
+    
+    utility_dti3 <- function(utility){
+      
+      dt  = data.frame(x=1:n, z=utility) %>%  
+              mutate(y  = (z^r-x^r),
+                     y = y^(1/r))
+      
+      dt = dt[!dt$y==Inf,]
+      dt = dt[!is.na(dt$y),]
+      
+      return(dt)
+    }
+    
+    utility_df <- lapply(seq(10, 100, 5), utility_dti3)
+    
+    full_df <- do.call(rbind, utility_df)
+    
+    max_x = max(full_df$x)
+    max_y = max(full_df$y)
+    
+    ggplot() +
+      geom_point(data = full_df, aes(x = x, y = y, color = as.factor(z)), size=0.8,
+                 alpha = 0.5, show.legend = T) +
+      geom_path(data = full_df, aes(x = x, y = y, color = as.factor(z)),
+                alpha = 0.5, show.legend = T) +
+      theme_minimal() +
+      scale_x_continuous(limits = c(0,max_x))+
+      scale_y_continuous(limits = c(0,max_y))+
+      labs(x = "X1", y = "X2",color = "Utility")
+
+```
+
+Finally, when two goods are complements, it means that utility is only achieved when both goods are consumed on a strict and fixed relation (e.g., 1 of each, 1 of X1 and 2 of X2, or vice versa). This implies that increasing the consumption of only 1 of the goods would not return additional utility. The IC for perfect complement goods has the shape of “L” to denote that increases in only one good generates no additional utility. The preference for two perfect complement goos is expressed as $U(x1, x2) = min{\{ax1,  bx2\}}$, where $a$ and $b$ allow to identify the combination of goods X1 and X2 that allow to obtain additional utility. The plot below was created using the CES function, assuming $r = -3, a=1, b=1$.
+
+```{r, echo=FALSE, include=TRUE}
+    n = 1e3
+    r = -3
+    
+    utility_dti3 <- function(utility){
+      
+      dt  = data.frame(x=1:n, z=utility) %>%  
+              mutate(y  = (z^r-x^r),
+                     y = y^(1/r))
+      
+      dt = dt[!dt$y==Inf,]
+      dt = dt[!is.na(dt$y),]
+      
+      return(dt)
+    }
+    
+    utility_df <- lapply(seq(10, 100, 5), utility_dti3)
+    
+    full_df <- do.call(rbind, utility_df)
+    
+    max_x = max(full_df$x)
+    max_y = max(full_df$y)
+    
+    ggplot() +
+      geom_point(data = full_df, aes(x = x, y = y, color = as.factor(z)), size=0.8,
+                 alpha = 0.5, show.legend = T) +
+      geom_path(data = full_df, aes(x = x, y = y, color = as.factor(z)),
+                alpha = 0.5, show.legend = T) +
+      theme_minimal() +
+      scale_x_continuous(limits = c(0,max_x))+
+      scale_y_continuous(limits = c(0,max_y))+
+      labs(x = "X1", y = "X2",color = "Utility")
+
+```
+
+In the plot below you would be able to change the value of the parameter $r$ from the CES utility function to see how that changes the IC map. Remember, when $r$ approaches 0 it resembles a Cobb-Douglas function, when it approaches 1, the function represents perfect substitutes, and as it approaches infinity, the preferences resemble perfect complements. Due to the functional form of the CES fuction, values for $r$ between -0.3 and 0.1 are discouraged.
+
+```{r, echo=FALSE, include=TRUE}
+
+numericInput("r_val", "Value of r parameter (r!=0; x<1):",0.55)
+
+renderPlot({
+    
+    n = 1e3
+    
+    utility_dti3 <- function(utility){
+      
+      r = input$r_val
+      
+      dt  = data.frame(x=1:n, z=utility) %>%  
+              mutate(y  = (z^r-x^r),
+                     y = y^(1/r))
+      
+      dt = dt[!dt$y==Inf,]
+      dt = dt[!is.na(dt$y),]
+      
+      return(dt)
+    }
+    
+    utility_df <- lapply(seq(10, 100, 5), utility_dti3)
+    
+    full_df <- do.call(rbind, utility_df)
+    
+    max_x = max(full_df$x)
+    max_y = max(full_df$y)
+    
+    ggplot() +
+      geom_point(data = full_df, aes(x = x, y = y, color = as.factor(z)), size=0.8,
+                 alpha = 0.5, show.legend = T) +
+      geom_path(data = full_df, aes(x = x, y = y, color = as.factor(z)),
+                alpha = 0.5, show.legend = T) +
+      theme_minimal() +
+      scale_x_continuous(limits = c(0,max_x))+
+      scale_y_continuous(limits = c(0,max_y))+
+      labs(x = "X1", y = "X2",color = "Utility")
+    
+  })
+
+```
+
+## References
+
+\bibitem{varian} 
+Varian H.
+$\textit{Intermediate microeconomics: A modern approach}.$
+7th ed. New York: W.W. Norton &.; 2006. 
+
+\bibitem{board} 
+Board S. 
+$\textit{Preference and Utility}.\\\texttt{http://www.econ.ucla.edu/sboard/teaching/econ11_09/econ11_09_lecture2.pdf}$
